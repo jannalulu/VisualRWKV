@@ -30,30 +30,31 @@ from lm_eval.models.huggingface import HFLM
 MODEL_NAME = sys.argv[1]
 
 print(f'Loading model - {MODEL_NAME}')
-model = RWKV(model=MODEL_NAME, strategy='cuda fp16', verbose=False)
-pipeline = PIPELINE(model, "rwkv_vocab_v20230424")
+model = RWKV(model=MODEL_NAME, strategy='cuda fp32')
+pipeline = PIPELINE(model, "20B_tokenizer.json")
 
 eval_tasks = []
-#eval_tasks += ['lambada_openai']
+eval_tasks += ['glue']
 #eval_tasks += ['hellaswag','winogrande']
-eval_tasks += ['lambada_openai','piqa','storycloze_2016','hellaswag','winogrande']
-eval_tasks += ['arc_challenge','arc_easy','headqa_en', 'openbookqa','sciq']
+# eval_tasks += ['lambada_openai','piqa','storycloze_2016','hellaswag','winogrande']
+# eval_tasks += ['arc_challenge','arc_easy','headqa_en', 'openbookqa','sciq']
 # copa bug: ConnectionError: Couldn't reach https://nlp.stanford.edu/data/coqa/coqa-train-v1.0.json (error 503), the server is down.
 # fix storycloze_2016 bug: open lm_eval/tasks/storycloze/storycloze_2016.yaml, change dataset_path to: MoE-UNC/story_cloze and change dataset_name to: default
 # fix headqa bug: open lm_eval/tasks/headqa/headqa_en.yaml, change dataset_path to: head_qa
 
 # multilingual
-eval_tasks += ['lambada_multilingual', 'xstorycloze', 'xwinograd', 'xcopa']
+# eval_tasks += ['lambada_multilingual', 'xstorycloze', 'xwinograd', 'xcopa']
 
 # mmlu
-eval_tasks += ['mmlu']
+# eval_tasks += ['mmlu']
 
 # set num_fewshot
 num_fewshot = 0 # default, please change it by task
 
 
-RWKV_PAD = pipeline.tokenizer.encode('\n') # we will use '\n' as PAD
-STOP_TOKEN = RWKV_PAD + pipeline.tokenizer.encode('\n\n') # we will use '\n\n' as STOP
+# RWKV_PAD = pipeline.tokenizer.encode('\n') # we will use '\n' as PAD
+RWKV_PAD = [0]
+STOP_TOKEN = RWKV_PAD + pipeline.tokenizer.encode('\n\n').ids # we will use '\n\n' as STOP
 # RWKV_PAD = [0] # you can try using [0] as pad
 print('RWKV_PAD', RWKV_PAD)
 print('STOP_TOKEN', STOP_TOKEN)
@@ -69,7 +70,7 @@ class TokenizerWrapper:
         self.eos_token_id = 0
 
     def encode(self, string: str, add_special_tokens=False):
-        return self.tokenizer.encode(string)
+        return self.tokenizer.encode(string).ids
 
     def decode(self, tokens):
         return self.tokenizer.decode(tokens)
